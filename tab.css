@@ -1,0 +1,47 @@
+*{
+    margin: 0;
+    padding: 0;
+}
+
+main{
+    max-width: 800px;
+    min-width: 100px;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+}
+
+#target{
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    gap: 0.8rem;
+    font-size: 1rem;
+}
+
+#target:focus{
+    background-color: gray;
+}
+
+#cursor{
+    position: absolute;
+    width:3px;
+    height:1.5rem;
+    background-color: gray;
+    opacity: 0.5;
+    border-top-left-radius: 20%;
+    border-top-right-radius: 20%;
+    border-bottom-left-radius: 20%;
+    border-bottom-right-radius: 20%;
+    top: 100px;
+    left: 100px;
+}
+
+.word{
+    display: flex;
+    flex-direction: row;
+    gap: 0.1rem;
+}
