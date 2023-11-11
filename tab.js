@@ -131,8 +131,8 @@ document.body.onkeydown = async (e) => {
 document.addEventListener(
     "test_end",
     () => {
-        target.style.visibility = "hidden"
-        cursor.style.visibility = "hidden"
+        target.style.display = "none"
+        cursor.style.display = "none"
         const sd = document.getElementById("score")
         const s = incorr+corr
         const c = corr/s * 100
