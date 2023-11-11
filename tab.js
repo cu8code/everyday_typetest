@@ -73,7 +73,6 @@ class Program{
 }
 
 document.addEventListener("test_start",() => {
-    console.log("started");
     setInterval(()=>{
         document.dispatchEvent(new Event("test_end"))
     },60 * 1000)
@@ -103,7 +102,10 @@ let word = 0
 
 document.body.onkeydown = async (e) => {
     const l = await layoutMap
-    const key = l.get(e.code)
+    let key = l.get(e.code)
+    if(e.shiftKey === true && key){
+        key = key.toUpperCase()
+    }
     e.preventDefault();
     if(e.code === "Space"){
         if(!program.get_char()){
