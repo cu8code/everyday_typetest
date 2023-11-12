@@ -1,3 +1,6 @@
+"use strict"
+
+import { todayDateProgramStyle } from "../utils";
 const target = document.getElementById("target")
 const cursor = document.getElementById("cursor")
 const layoutMap = navigator.keyboard.getLayoutMap()
@@ -8,7 +11,6 @@ If you do find this paragraph tool useful, please do us a favor and let us know 
 
 const arr = []
 let pos = 0
-let date = null;
 
 function createWordDiv(p) {
     const d = document.createElement("div")
@@ -104,7 +106,7 @@ document.body.onkeydown = async (e) => {
     const l = await layoutMap
     let key = l.get(e.code)
     if(e.shiftKey === true && key){
-        key = key.toUpperCase()
+        key = key[0].toUpperCase()
     }
     e.preventDefault();
     if(e.code === "Space"){
@@ -130,22 +132,23 @@ document.body.onkeydown = async (e) => {
 
 document.addEventListener(
     "test_end",
-    () => {
+    async () => {
         target.style.display = "none"
         cursor.style.display = "none"
         const sd = document.getElementById("score")
         const s = incorr+corr
         const c = corr/s * 100
-        const delta = new Date().getSeconds() - date.getSeconds()
         sd.innerText = String(Math.floor(c)) + "%" + " " + `${word}WPM`
+        const b = (await chrome.storage.local.get(["toady"]))["toady"]
+        if(b){
+            return
+        }
+        const date = todayDateProgramStyle()
+        chrome.storage.local.set({
+            date:true
+        })
     }
 )
 
-document.addEventListener(
-    "test_start",
-    () => {
-        date = new Date()
-    }
-)
 
 updateCursorPos()
