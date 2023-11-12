@@ -1,6 +1,6 @@
 'use strict'
 
-chrome.runtime.onStartup.addListener(async ()=>{
+const init = async () => {
   const today = (await chrome.storage.local.get([""]))
   if(today){
     return
@@ -8,4 +8,6 @@ chrome.runtime.onStartup.addListener(async ()=>{
   chrome.tabs.create({
     url: "tab.html"
   })
-})
+}
+
+chrome.runtime.onStartup.addListener(init)
