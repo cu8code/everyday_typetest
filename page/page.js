@@ -188,6 +188,10 @@ document.body.onkeydown = async (e) => {
 }
 
 
+/**
+ * that main clock logic
+ * @date 11/12/2023 - 8:23:33 PM
+ */
 const _clock = () => {
     let c = 60
     const t = () => {
