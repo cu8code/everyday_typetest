@@ -2,7 +2,11 @@
 
 const target = document.getElementById("target")
 const cursor = document.getElementById("cursor")
+const clock = document.getElementById("clock")
+clock.innerText = "60"
 const layoutMap = navigator.keyboard.getLayoutMap()
+const test_end  = new Event("test_end")
+const test_start = new Event("test_start")
 
 const paragraph = `it's not only writers who can benefit from this free online tool. If you're a programmer who's working on a project where blocks of text are needed, this tool can be a great way to get that. It's a good way to test your programming and that the tool being created is working well.
 Above are a few examples of how the random paragraph generator can be beneficial. The best way to see if this random paragraph picker will be useful for your intended purposes is to give it a try. Generate a number of paragraphs to see if they are beneficial to your current project.
@@ -105,12 +109,12 @@ class Program{
         }
         if(this.pos==0){
             if(this.char_pos==0){
-                document.dispatchEvent(new Event("test_start"))
+                document.dispatchEvent(test_start)
             }
         }
         if(this.pos==this.arr.length-1){
             if(this.char_pos==this.get_word().children.length-1){
-                document.dispatchEvent(new Event("test_end"))
+                document.dispatchEvent(test_end)
             }
         }
         this.char_pos++
@@ -126,11 +130,6 @@ class Program{
     }
 }
 
-document.addEventListener("test_start",() => {
-    setInterval(()=>{
-        document.dispatchEvent(new Event("test_end"))
-    },60 * 1000)
-})
 
 const program = new Program(target)
 
@@ -188,17 +187,38 @@ document.body.onkeydown = async (e) => {
     incorr++
 }
 
+
+const _clock = () => {
+    let c = 60
+    const t = () => {
+        c--
+        clock.innerText = String(c)
+        if(c<=0){
+            document.dispatchEvent(test_end)
+        }
+    }
+    t()
+    const i = setInterval(t,1000)
+    if(c<=0){
+        clearInterval(i)
+    }
+}
+
+document.addEventListener("test_start",() => {
+    _clock()
+})
+
 document.addEventListener(
     "test_end",
     async () => {
         target.style.display = "none"
         cursor.style.display = "none"
+        clock.style.display = "none"
         const sd = document.getElementById("score")
         const s = incorr+corr
         const c = corr/s * 100
         sd.innerText = String(Math.floor(c)) + "%" + " " + `${word}WPM`
     }
 )
-
 
 updateCursorPos()
