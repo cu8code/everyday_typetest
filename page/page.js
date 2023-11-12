@@ -1,7 +1,5 @@
 "use strict"
 
-import { todayDateProgramStyle } from "../utils";
-
 const target = document.getElementById("target")
 const cursor = document.getElementById("cursor")
 const layoutMap = navigator.keyboard.getLayoutMap()
@@ -59,8 +57,8 @@ class Program{
     /**
      * This class is responsible for
      * - creating the html elements for paragraph
-     * - has a cursor which allows us to acess one word div after other
-     * - also gives us the single char from the word
+     * - has a cursor allowing us to read div in sequence
+     * - also gives us the single char from the **current** word
      * @date 11/12/2023 - 7:18:57 PM
      *
      * @constructor
@@ -141,7 +139,6 @@ const program = new Program(target)
  * @date 11/12/2023 - 7:25:35 PM
  *
  * @async
- * @return {void}
  * */
 const updateCursorPos =  async () => {
     if(!program.get_char()){
@@ -200,14 +197,6 @@ document.addEventListener(
         const s = incorr+corr
         const c = corr/s * 100
         sd.innerText = String(Math.floor(c)) + "%" + " " + `${word}WPM`
-        const b = (await chrome.storage.local.get(["toady"]))["toady"]
-        if(b){
-            return
-        }
-        const date = todayDateProgramStyle()
-        chrome.storage.local.set({
-            date:true
-        })
     }
 )
 

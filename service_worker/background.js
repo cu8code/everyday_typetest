@@ -1,12 +1,9 @@
 'use strict'
 
 const init = async () => {
-  const today = (await chrome.storage.local.get([""]))
-  if(today){
-    return
-  }
+  console.log("init");
   chrome.tabs.create({
-    url: "tab.html"
+    url: "page/page.html"
   })
 }
 
