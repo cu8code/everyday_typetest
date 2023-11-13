@@ -3,15 +3,18 @@
 const events = {
     "test:start": new Event("test:start"),
     "test:end": new Event("test:end"),
-    "read:next:letter": new Event("read:next:letter"),
-    "read:next:word": new Event("read:next:word"),
-    "read:last:letter": new Event("read:last:letter"),
-    "read:last:word": new Event("read:last:word")
+    "read:letter": new Event("read:letter"),
+    "read:word": new Event("read:word"),
+    "write:letter": new Event("write:letter"),
+    "write:word": new Event("write:word"),
 }
 
-const fontSize="1.2rem"
+class Config{
+
+}
 
 class Letter extends HTMLElement {
+    letter=null
     constructor() {
         super()
         const template = document.createElement("template")
@@ -27,6 +30,7 @@ class Letter extends HTMLElement {
         `
         const attachShadow = this.attachShadow({ mode: "open" })
         attachShadow.append(template.content.cloneNode(true))
+        this.letter = attachShadow.querySelector("letter")
     }
     static observedAttributes = ["data"]
     attributeChangedCallback(name, old, newVal) {
@@ -35,6 +39,9 @@ class Letter extends HTMLElement {
                 this.innerText = newVal
             }
         }
+    }
+    toggle(){
+        this.letter.setAttribute("sucess",null)
     }
 }
 
@@ -69,7 +76,7 @@ class Clock extends HTMLElement {
         template.innerHTML = `
             <style>
                 h2{
-                    font-size: ${fontSize};
+                    font-size: 1.2rem;
                 }
             </style>
             <h2>
@@ -104,6 +111,7 @@ class Cursor extends HTMLElement {
         `
         const attachShadow = this.attachShadow({mode:"open"})
         attachShadow.append(template.content.cloneNode(true))
+        this.style.position = "absolute"
     }
     static observedAttributes = ["top","left"]
     attributeChangedCallback(name,old,newVal){
@@ -122,8 +130,7 @@ class TypeTest extends HTMLElement {
     target=null
     word_itarator=null
     letter_iterator=null
-    currentLetter=null
-    keyboard = navigator.keyboard.getLayoutMap()
+    currentLetterElement=null
     hasTestStarted = false
     constructor() {
         super()
@@ -161,47 +168,65 @@ class TypeTest extends HTMLElement {
     connectedCallback(){
         this.word_itarator = this.children[Symbol.iterator]()
         this.letter_iterator = this.word_itarator.next().value.children[Symbol.iterator]()
-        this.target.onkeydown = this.onkeydown
+        this.currentLetterElement = this.letter_iterator.next().value  
+        document.dispatchEvent(events["read:letter"])
+        this.addEventListener("click",this.focus)
+        this.target.onkeydown = (e) => this.onkeydown(e)
         this.focus()
+        this.updateCursor()
     }
     focus(){
         this.target.focus()
     }
     async onkeydown(e){
-        console.log("keydown");
-        e.prevepreventDefault()
-        const key = await this.keyboard
+        const key = await navigator.keyboard.getLayoutMap() // TODO:outside this line dose not work
         let keyVal = key.get(e.code)
         if(e.code === "Space"){
-            
+            if(this.currentLetterElement === null){
+                this.next()
+                return
+            }
         }
-        if(keyVal === undefined){
+        if(keyVal === undefined || this.currentLetterElement === null){
             return
         }
         this.testStart()
         keyVal = e.shiftKey ? keyVal.toUpperCase() : keyVal
-        if(keyVal === this.currentLetter){
+        if(keyVal === this.currentLetterElement.innerText){
+            this.currentLetterElement.toggle()
+            this.updateCursor()
             this.next()
         }
+    }
+    updateCursor(){
+        const {top,left} = this.currentLetterElement.getBoundingClientRect()
+        this.cursor.setAttribute("top",top)
+        this.cursor.setAttribute("left",left)
     }
     testStart(){
         if(this.hasTestStarted === true){
             return
         }
         this.hasTestStarted = true
-        this.dispatchEvent(events["test:start"])
+        document.dispatchEvent(events["test:start"])
     }
     next(){
-        if(this.currentLetter === "next_word"){
-            this.letter_iterator =  this.word_itarator.next().children[Symbol.iterator]()
+        if(this.currentLetterElement === null){
+            const e = this.word_itarator.next()
+            if(e.done){
+                document.dispatchEvent(events["test:end"])
+                return
+            }
+            document.dispatchEvent(events["read:word"])
+            this.letter_iterator = e.value.children[Symbol.iterator]()
         }
         const l = this.letter_iterator.next()
-        if(l.end === true){
-            this.currentLetter = "next_word"
+        if(l.done === true){
+            this.currentLetterElement = null
             return
         }
-        l.value.setAttribute("sucess")
-        this.currentLetter = l.value
+        document.dispatchEvent(events["read:letter"])
+        this.currentLetterElement = l.value
     }
 }
 
