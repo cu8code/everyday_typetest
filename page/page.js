@@ -16,6 +16,11 @@ class Letter extends HTMLElement {
         super()
         const template = document.createElement("template")
         template.innerHTML = `
+            <style>
+                letter[sucess] {
+                    color: green;
+                }
+            </style>
             <letter>
                 <slot></slot>
             </letter>
@@ -88,15 +93,17 @@ class Cursor extends HTMLElement {
         const template = document.createElement("template")
         template.innerHTML = `
             <style>
-                div{
-                    background-color: red;
-                    width: 10px;
-                    height: ${fontSize};
+                #cursor{
+                    display: block;
+                    width: 3px;
+                    height: 1.2rem;
+                    background: red;
                 }
             </style>
-            <div></div>
+            <div id="cursor"> </div>
         `
-        this.append(template.content.cloneNode(true))
+        const attachShadow = this.attachShadow({mode:"open"})
+        attachShadow.append(template.content.cloneNode(true))
     }
     static observedAttributes = ["top","left"]
     attributeChangedCallback(name,old,newVal){
@@ -110,17 +117,30 @@ class Cursor extends HTMLElement {
 }
 
 class TypeTest extends HTMLElement {
-    arr=[]
     clock=null
     cursor=null
+    target=null
+    word_itarator=null
+    letter_iterator=null
+    currentLetter=null
+    keyboard = navigator.keyboard.getLayoutMap()
+    hasTestStarted = false
     constructor() {
         super()
         const template = document.createElement("template")
         template.innerHTML = `
-            <main>
-                <slot name="clock"></slot>
-                <slot></slot>
-            </main>
+            <style>
+                main:focus{
+                    background: gray;
+                }
+            </style>
+            <div>
+                <c-clock></c-clock>
+                <c-cursor></c-cursor>
+                <main>
+                    <slot></slot>
+                </main>
+            </div>
         `
         const attachShadow = this.attachShadow({ mode: "open" })
         attachShadow.append(template.content.cloneNode(true))
@@ -129,20 +149,64 @@ class TypeTest extends HTMLElement {
             const word = document.createElement("c-word")
             word.setAttribute("data", w)
             this.append(word)
-            this.arr.push(word)
         }
-        this.clock=document.createElement("c-clock")
-        this.clock.setAttribute("slot","clock")
+        this.target = attachShadow.querySelector("main")
+        this.target.setAttribute('tabindex', 0);
+        this.clock=attachShadow.querySelector("c-clock")
         this.clock.setAttribute("data","data")
-        this.append(this.clock)
-        this.cursor=document.createElement("c-cursor")
+        this.cursor=attachShadow.querySelector("c-cursor")
         this.cursor.setAttribute("top",0)
         this.cursor.setAttribute("left",0)
-        this.append(this.cursor)
+    }
+    connectedCallback(){
+        this.word_itarator = this.children[Symbol.iterator]()
+        this.letter_iterator = this.word_itarator.next().value.children[Symbol.iterator]()
+        this.target.onkeydown = this.onkeydown
+        this.focus()
+    }
+    focus(){
+        this.target.focus()
+    }
+    async onkeydown(e){
+        console.log("keydown");
+        e.prevepreventDefault()
+        const key = await this.keyboard
+        let keyVal = key.get(e.code)
+        if(e.code === "Space"){
+            
+        }
+        if(keyVal === undefined){
+            return
+        }
+        this.testStart()
+        keyVal = e.shiftKey ? keyVal.toUpperCase() : keyVal
+        if(keyVal === this.currentLetter){
+            this.next()
+        }
+    }
+    testStart(){
+        if(this.hasTestStarted === true){
+            return
+        }
+        this.hasTestStarted = true
+        this.dispatchEvent(events["test:start"])
+    }
+    next(){
+        if(this.currentLetter === "next_word"){
+            this.letter_iterator =  this.word_itarator.next().children[Symbol.iterator]()
+        }
+        const l = this.letter_iterator.next()
+        if(l.end === true){
+            this.currentLetter = "next_word"
+            return
+        }
+        l.value.setAttribute("sucess")
+        this.currentLetter = l.value
     }
 }
 
 customElements.define("c-letter", Letter)
 customElements.define("c-word", Word)
 customElements.define("c-clock", Clock)
+customElements.define("c-cursor", Cursor)
 customElements.define("type-test", TypeTest)
