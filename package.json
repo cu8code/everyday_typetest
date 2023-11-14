@@ -4,12 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "setup": "npx tsc --init",
+    "build": "npx tsc && node ./build.cjs"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@types/chrome": "^0.0.251"
+    "@types/chrome": "^0.0.251",
+    "typescript": "^5.2.2"
   }
 }

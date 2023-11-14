@@ -1,20 +1,13 @@
 "use strict"
 
-const events = {
-    "test:start": new Event("test:start"),
-    "test:end": new Event("test:end"),
-    "read:letter": new Event("read:letter"),
-    "read:word": new Event("read:word"),
-    "write:letter": new Event("write:letter"),
-    "write:word": new Event("write:word"),
+const test = async () => {
+    chrome.runtime.sendMessage("load_config")
 }
 
-class Config {
-
-}
+test()
 
 class Letter extends HTMLElement {
-    letter = null
+    letter : Element | null = null
     constructor() {
         super()
         const template = document.createElement("template")
@@ -22,6 +15,9 @@ class Letter extends HTMLElement {
             <style>
                 letter[sucess] {
                     color: green;
+                }
+                letter{
+                    font-fmaily: monospace;
                 }
             </style>
             <letter>
@@ -33,7 +29,7 @@ class Letter extends HTMLElement {
         this.letter = attachShadow.querySelector("letter")
     }
     static observedAttributes = ["data"]
-    attributeChangedCallback(name, old, newVal) {
+    attributeChangedCallback(name:string, old:any, newVal:any) {
         if (name === "data") {
             if (newVal.length === 1) {
                 this.innerText = newVal
@@ -41,7 +37,9 @@ class Letter extends HTMLElement {
         }
     }
     toggle() {
-        this.letter.setAttribute("sucess", null)
+        if(this.letter != null){
+            this.letter.setAttribute("sucess", "true")
+        }
     }
 }
 
@@ -58,7 +56,7 @@ class Word extends HTMLElement {
         attachShadow.append(template.content.cloneNode(true))
     }
     static observedAttributes = ["data"]
-    attributeChangedCallback(name, old, newVal) {
+    attributeChangedCallback(name:string, old:any, newVal:any) {
         if (name === "data") {
             for (const letter of newVal) {
                 const l = document.createElement("c-letter")
@@ -70,6 +68,8 @@ class Word extends HTMLElement {
 }
 
 class Clock extends HTMLElement {
+    time = 60
+    endCallBack = ()=>{}
     constructor() {
         super()
         const template = document.createElement("template")
@@ -86,16 +86,36 @@ class Clock extends HTMLElement {
         const attachShadow = this.attachShadow({ mode: "open" })
         attachShadow.append(template.content.cloneNode(true))
     }
-    static observedAttributes = ["data"]
-    attributeChangedCallback(name, old, newVal) {
-        if (name === "data") {
+    static observedAttributes = ["time"]
+    attributeChangedCallback(name:string, old:any, newVal:any) {
+        if (name === "time") {
+            this.time = newVal
             this.innerText = newVal
         }
+    }
+    start() {
+        let p = this.time
+        const i = setInterval(() => {
+            if (p <= 0) {
+                this.end()
+                clearInterval(i)
+            }
+            --p;
+            if (p > this.time) {
+                return
+            }
+            this.setAttribute("time", String(p))
+            this.end()
+        }, 1000)
+    }
+    end() {
+        console.log("end");
+        this.endCallBack()
     }
 }
 
 class Cursor extends HTMLElement {
-    target=null
+    target : HTMLElement | null = null
     constructor() {
         super()
         const template = document.createElement("template")
@@ -117,7 +137,10 @@ class Cursor extends HTMLElement {
         this.target = attachShadow.querySelector("div")
     }
     static observedAttributes = ["top", "left"]
-    attributeChangedCallback(name, old, newVal) {
+    attributeChangedCallback(name:string, old:any, newVal:any) {
+        if(this.target == null){
+            return
+        }
         if (name === "top") {
             this.target.style.top = `${newVal}px`
         }
@@ -128,13 +151,15 @@ class Cursor extends HTMLElement {
 }
 
 class TypeTest extends HTMLElement {
-    clock = null
-    cursor = null
-    target = null
-    word_itarator = null
-    letter_iterator = null
-    currentLetterElement = null
+    clock : Clock | null = null
+    cursor : Cursor | null= null
+    target : HTMLElement | null = null
+    word_itarator : IterableIterator<Word> | null = null
+    letter_iterator : IterableIterator<Letter> | null = null
+    currentLetterElement : Letter | null= null
     hasTestStarted = false
+    corrctKey = 0
+    incorrentKey = 0
     constructor() {
         super()
         const template = document.createElement("template")
@@ -150,6 +175,7 @@ class TypeTest extends HTMLElement {
                     gap:0.5rem;
                     width:100%;
                     overflow:hidden;
+                    flex-wrap: wrap;
                 }
                 div{
                     display:flex;
@@ -171,44 +197,72 @@ class TypeTest extends HTMLElement {
         `
         const attachShadow = this.attachShadow({ mode: "open" })
         attachShadow.append(template.content.cloneNode(true))
-        const para = "my name is khan"
+        const para = `Generating random paragraphs can be an excellent way for writers to get their creative flow going at the beginning of the day. The writer has no idea what topic the random paragraph will be about when it appears. This forces the writer to use creativity to complete one of three common writing challenges. The writer can use the paragraph as the first one of a short story and build upon it. A second option is to use the random paragraph somewhere in a short story they create. The third option is to have the random paragraph be the ending paragraph in a short story. No matter which of these challenges is undertaken, the writer is forced to use creativity to incorporate the paragraph into their writing.`
         for (const w of para.split(" ")) {
             const word = document.createElement("c-word")
             word.setAttribute("data", w)
             this.append(word)
         }
         this.target = attachShadow.querySelector("main")
-        this.target.setAttribute('tabindex', 0);
+        if(this.target === null){
+            throw new Error("no target found")
+        }
+        this.target.setAttribute('tabindex', "0");
         this.clock = attachShadow.querySelector("c-clock")
-        this.clock.setAttribute("data", "data")
+        if(this.clock === null){
+            throw new Error("no clock found")
+        }
+        this.clock.setAttribute("time", "5")
         this.cursor = attachShadow.querySelector("c-cursor")
-        this.cursor.setAttribute("top", 0)
-        this.cursor.setAttribute("left", 0)
+        if(this.cursor === null){
+            throw new Error("cursor not found");
+        }
+        this.cursor.setAttribute("top", "0")
+        this.cursor.setAttribute("left", "0")
     }
     connectedCallback() {
-        this.word_itarator = this.children[Symbol.iterator]()
+        this.word_itarator = this.children[Symbol.iterator]() as IterableIterator<Word>
         this.letter_iterator = this.word_itarator.next().value.children[Symbol.iterator]()
+        if(this.word_itarator == null){
+            throw new Error("could not setup iterator");
+        }
+        if(this.letter_iterator === null){
+            throw new Error("could not setup iterator")
+        }
         this.currentLetterElement = this.letter_iterator.next().value
-        document.dispatchEvent(events["read:letter"])
+        if(this.target === null){
+            throw new Error("target not found");
+        }
         this.target.addEventListener("click", () => this.focus())
         this.target.addEventListener("keydown", (e) => this.onkeydown(e))
-        window.addEventListener("resize",(e) => {this.onresize()})
+        window.addEventListener("resize", (e) => { this.onresize() })
         this.focus()
-        this.updateCursor()
+        if(this.clock === null){
+            throw new Error("clock not setup")
+        }
+        this.clock.endCallBack = () => {
+            if(this.clock === null){
+                throw new Error("clock not setup")
+            }
+            this.clock.setAttribute("data", String(this.corrctKey / (this.incorrentKey + this.corrctKey)))
+        }
     }
-    focus() {
+    override focus = () => {
+        if(this.target === null){
+            throw new Error("target not found");
+        }
         this.target.focus()
     }
-    onresize(){
+    override onresize = () => {
         this.updateCursor()
     }
-    async onkeydown(e) {
-        const key = await navigator.keyboard.getLayoutMap() // TODO:outside this line dose not work
+    override onkeydown = async (e:KeyboardEvent) => {
+        const key = await (navigator as any).keyboard.getLayoutMap() as Map<string,string> // TODO:outside this line dose not work
         let keyVal = key.get(e.code)
         if (e.code === "Space") {
             if (this.currentLetterElement === null) {
                 this.next()
-                if(this.currentLetterElement != null){
+                if (this.currentLetterElement != null) {
                     this.updateCursor()
                 }
                 return
@@ -219,40 +273,58 @@ class TypeTest extends HTMLElement {
         }
         this.testStart()
         keyVal = e.shiftKey ? keyVal.toUpperCase() : keyVal
-        if (keyVal === this.currentLetterElement.innerText) {
+        if (keyVal === this.currentLetterElement.innerHTML) {
             this.currentLetterElement.toggle()
             this.updateCursor()
             this.next()
+            this.corrctKey++
         }
+        this.incorrentKey++
     }
     updateCursor() {
+        if(this.cursor === null){
+            throw new Error("no cursor");
+        }
+        if(this.currentLetterElement === null){
+            return
+        }
         const { top, left } = this.currentLetterElement.getBoundingClientRect()
-        this.cursor.setAttribute("top", top)
-        this.cursor.setAttribute("left", left)
+        this.cursor.setAttribute("top", String(top))
+        this.cursor.setAttribute("left", String(left + 11))
     }
     testStart() {
+        if(this.clock === null){
+            throw new Error("no clock found");
+        }
+        this.clock.start()
         if (this.hasTestStarted === true) {
             return
         }
         this.hasTestStarted = true
-        document.dispatchEvent(events["test:start"])
     }
     next() {
+        if(this.word_itarator === null){
+            throw new Error("word_iternot can not be null");
+        }
+        if(this.letter_iterator === null){
+            throw new Error("letter_iternot can not be null");
+        }
+        if(this.clock === null){
+            throw new Error("clock can not be null");
+        }
         if (this.currentLetterElement === null) {
             const e = this.word_itarator.next()
             if (e.done) {
-                document.dispatchEvent(events["test:end"])
+                this.clock.end()
                 return
             }
-            document.dispatchEvent(events["read:word"])
-            this.letter_iterator = e.value.children[Symbol.iterator]()
+            this.letter_iterator = e.value.children[Symbol.iterator]() as IterableIterator<Letter>
         }
         const l = this.letter_iterator.next()
         if (l.done === true) {
             this.currentLetterElement = null
             return
         }
-        document.dispatchEvent(events["read:letter"])
         this.currentLetterElement = l.value
     }
 }
